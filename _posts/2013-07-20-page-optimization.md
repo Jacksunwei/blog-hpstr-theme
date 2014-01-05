@@ -2,7 +2,7 @@
 title: 优化页面载入的实践
 description: 页面优化
 layout: post
-image: 
+image:
   feature: abstract-3.jpg
 tags: [html, javascript]
 modified: 2013-07-20
@@ -15,7 +15,7 @@ share: true
 
 {% highlight html %}
 <link href="style.css" rel="stylesheet" type="text/css" />;
-<script type="text/javascript" src="jquery.min.js"><;/script>;
+<script type="text/javascript" src="jquery.min.js"></script>
 {% endhighlight %}
 
 #### 2. 对于只负责交互的JavaScript代码，可以加async属性，从而加快页面加载素的
