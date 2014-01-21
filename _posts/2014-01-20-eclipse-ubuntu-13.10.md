@@ -2,8 +2,8 @@
 layout: post
 title: 让eclipse menu bar 在ubuntu中正常显示
 description: "解决eclipse在ubuntu13.10下menu不正常显示的问题"
-modified: 2014-01-20
-tags: [ubuntu, ubuntu 13.10, eclipse, eclipse kepler]
+modified: 2014-01-21
+tags: [ubuntu, eclipse]
 image:
   feature: abstract-10.jpg
 comments: true
