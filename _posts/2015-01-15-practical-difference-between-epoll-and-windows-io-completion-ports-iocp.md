@@ -15,10 +15,12 @@ share: true
 目录
 ====
 
+<!-- MarkdownTOC -->
 
-- [简介（Introduction）](#)
+- 简介（Introduction）
 - 通知类型（Notification Type）
 
+<!-- /MarkdownTOC -->
 
 
 简介（Introduction）
@@ -54,7 +56,30 @@ epoll和IOCP第一个重大的不同就是*何时收到通知*。
 
 当使用epoll时，一个应用程序将：
 
-* 决定要请求一个文件描述符的何种动作（读、写或都要）
+* 决定要请求一个文件描述符的何种动作（读、写或又读又写）
 * 使用*epoll_ctl*设置轮训掩码（polling mask）
 * 调用*epoll_wait*，阻塞线程，直到有至少一个事件被触发。如果多个事件被触发，函数会返回
   尽量多的事件。
+* 从`union data`获取事件数据指针。参见[这里](http://linux.die.net/man/2/epoll_wait)
+* 如果在返回的event structure（`epoll_event`）中，对应的标志位被设定，那么就触发对应
+  的操作（读、写或又读又写）
+* 在所有操作完成后（应该是瞬间完成的），处理读入的数据或发送更多的数据
+* 特别的，文件描述符很有可能被同时设置为读和写，以便程序能进行两种操作
+
+当使用IOCP时，一个应用程序将：
+
+* 使用非零*OVERLAPPED*结构体作为参数，对一个文件描述符（由*ReadFile*或*WriteFile*
+  API获得）触发一个需要的动作。系统将这个操作入队，函数调用立即返回。
+  （注：也许这个函数也能够瞬间完成，但是这并不影响整个逻辑，因为即便瞬间完成的操作，仍然
+  会向完成端口投递消息）
+* 调用*GetQueuedCompletionStatus()*，阻塞当前线程，直到一个操作完成并投递消息。即便有
+  多个操作同时完成，效果也是一样，*GetQueuedCompletionStatus()*只会挑选一个返回。
+* 利用completion key和*OVERLAPPED*结构体，找到事件数据指针。
+* 处理读到的数据，或者发送更多数据
+* 同一时刻，只有一个完成操作可以被获取。
+
+epoll和IOCP在通知类型上的差异，使得我们可以轻易的使用epoll，外加一个独立的线程池，
+来模拟IOCP。然后，反过来却并不容易。据我的了解，还没有比较容易的利用IOCP来模拟epoll的实
+现，而且似乎很难在保证同样性能的前提下，实现用IOCP来模拟epoll。
+
+
