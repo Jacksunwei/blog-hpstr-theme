@@ -14,8 +14,8 @@ share: true
 
 <!-- MarkdownTOC -->
 
-- 简介（Introduction）
-- 通知类型（Notification Type）
+- [简介（Introduction）][简介（introduction）]
+- [通知类型（Notification Type）][通知类型（notification-type）]
 
 <!-- /MarkdownTOC -->
 
