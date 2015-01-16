@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  【译】 Practical difference between epoll and Windows IO Completion Ports (IOCP)
+title:  【译】 epoll与IOCP之间的比较 (1)
 description: 2014 review
 tags: [iocp]
 image: 
@@ -20,7 +20,6 @@ share: true
 - 简介（Introduction）
 - 通知类型（Notification Type）
 - 数据访问性（Data Accessibility）
-- 等待条件的修改（Waiting Condition Modification）
 
 <!-- /MarkdownTOC -->
 
@@ -112,8 +111,4 @@ IOCP操作也需要一个指向`OVERLAPPED`结构体的指针，并且在IO完�
 `OVERLAPPED`结构体，一个用来`ReadFile`，一个用来`WriteFile`。
 
 反之，epoll没有使用任何缓存，因此epoll不存在上述问题。
-
-等待条件的修改（Waiting Condition Modification）
-=============================================
-
 
