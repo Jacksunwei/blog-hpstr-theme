@@ -15,12 +15,10 @@ share: true
 目录
 ====
 
-<!-- MarkdownTOC -->
 
-- [简介（Introduction）][简介（introduction）]
-- [通知类型（Notification Type）][通知类型（notification-type）]
+- [简介（Introduction）](#)
+- 通知类型（Notification Type）
 
-<!-- /MarkdownTOC -->
 
 
 简介（Introduction）
