@@ -10,7 +10,15 @@ comments: true
 share: true
 ---
 
-原文链接：http://www.ulduzsoft.com/2014/01/practical-difference-between-epoll-and-windows-io-completion-ports-iocp/
+原文链接：[http://www.ulduzsoft.com/2014/01/practical-difference-between-epoll-and-windows-io-completion-ports-iocp/](http://www.ulduzsoft.com/2014/01/practical-difference-between-epoll-and-windows-io-completion-ports-iocp/)
+
+<!-- MarkdownTOC -->
+
+- 简介（Introduction）
+- 通知类型（Notification Type）
+
+<!-- /MarkdownTOC -->
+
 
 简介（Introduction）
 ==================
@@ -19,7 +27,7 @@ share: true
 
 本文可能会引起以下三种人的兴趣：
 
-* 致力于开发高性能、跨平台网络服务的系统架构师
+* 致力于开发*高性能*、*跨平台*网络服务的系统架构师
 * 要将代码移植到这两个平台的朋友
 * 已经熟悉其一，希望学习另外一个的求知欲甚强的朋友
 
@@ -38,5 +46,14 @@ share: true
 
 通知类型（Notification Type）
 ===========================
+epoll和IOCP第一个重大的不同就是*何时收到通知*。
 
+* epoll在文件描述符对“要求操作”（requeset operation）就绪时，发出通知。
+* IOCP则在“要求操作”（request operatoion）完成/无法完成时，发出通知。
 
+当使用epoll时，一个应用程序将：
+
+* 决定要请求一个文件描述符的何种动作（读、写或都要）
+* 使用*epoll_ctl*设置轮训掩码（polling mask）
+* 调用*epoll_wait*，阻塞线程，直到有至少一个事件被触发。如果多个事件被触发，函数会返回
+  尽量多的事件。
