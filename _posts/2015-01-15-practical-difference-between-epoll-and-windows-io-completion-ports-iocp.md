@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  [译]Practical difference between epoll and Windows IO Completion Ports (IOCP)
+title:  【译】 Practical difference between epoll and Windows IO Completion Ports (IOCP)
 description: 2014 review
 tags: [iocp]
 image: 
@@ -19,6 +19,8 @@ share: true
 
 - 简介（Introduction）
 - 通知类型（Notification Type）
+- 数据访问性（Data Accessibility）
+- 等待条件的修改（Waiting Condition Modification）
 
 <!-- /MarkdownTOC -->
 
@@ -57,8 +59,8 @@ epoll和IOCP第一个重大的不同就是*何时收到通知*。
 当使用epoll时，一个应用程序将：
 
 * 决定要请求一个文件描述符的何种动作（读、写或又读又写）
-* 使用*epoll_ctl*设置轮训掩码（polling mask）
-* 调用*epoll_wait*，阻塞线程，直到有至少一个事件被触发。如果多个事件被触发，函数会返回
+* 使用`epoll_ctl`设置轮训掩码（polling mask）
+* 调用`epoll_wait`，阻塞线程，直到有至少一个事件被触发。如果多个事件被触发，函数会返回
   尽量多的事件。
 * 从`union data`获取事件数据指针。参见[这里](http://linux.die.net/man/2/epoll_wait)
 * 如果在返回的event structure（`epoll_event`）中，对应的标志位被设定，那么就触发对应
@@ -68,18 +70,50 @@ epoll和IOCP第一个重大的不同就是*何时收到通知*。
 
 当使用IOCP时，一个应用程序将：
 
-* 使用非零*OVERLAPPED*结构体作为参数，对一个文件描述符（由*ReadFile*或*WriteFile*
+* 使用非零`OVERLAPPED`结构体作为参数，对一个文件描述符（由`ReadFile`或`WriteFile`
   API获得）触发一个需要的动作。系统将这个操作入队，函数调用立即返回。
   （注：也许这个函数也能够瞬间完成，但是这并不影响整个逻辑，因为即便瞬间完成的操作，仍然
   会向完成端口投递消息）
-* 调用*GetQueuedCompletionStatus()*，阻塞当前线程，直到一个操作完成并投递消息。即便有
-  多个操作同时完成，效果也是一样，*GetQueuedCompletionStatus()*只会挑选一个返回。
-* 利用completion key和*OVERLAPPED*结构体，找到事件数据指针。
+* 调用`GetQueuedCompletionStatus()`，阻塞当前线程，直到一个操作完成并投递消息。即便有
+  多个操作同时完成，效果也是一样，`GetQueuedCompletionStatus()`只会挑选一个返回。
+* 利用completion key和`OVERLAPPED`结构体，找到事件数据指针。
 * 处理读到的数据，或者发送更多数据
 * 同一时刻，只有一个完成操作可以被获取。
 
 epoll和IOCP在通知类型上的差异，使得我们可以轻易的使用epoll，外加一个独立的线程池，
 来模拟IOCP。然后，反过来却并不容易。据我的了解，还没有比较容易的利用IOCP来模拟epoll的实
 现，而且似乎很难在保证同样性能的前提下，实现用IOCP来模拟epoll。
+
+数据访问性（Data Accessibility）
+==============================
+
+一个网络服务器需要对连接对象进行处理，这些连接对象通常包含一个文件描述符以及一些关联数据
+（如缓存）。一般来说，这些对象应该随着相应socket的中断而被销毁。然而，这对IOCP来说，就有
+些麻烦。
+
+IOCP依赖于对`ReadFile`和`WriteFile`的队列化管理，也就是它们将在将来的某个时刻完成。
+同时，读操作和写操作都是在缓存上完成。并且要求这些缓存在IO完成之前必须一致保持存在。
+更进一步讲，在缓存中的数据你是不能再动的。这就导致了如下几个限制：
+
+* 你不能使用栈上的空间进行数据的读取，因为缓存必须要在操作完成之前保持有效，但是所谓的
+  “完成”发生时，通常已经离开发起操作的函数，所以那时这些缓存所对应的指针已经失效了。
+* 你不能动态得*重新*分配(reallocate)输出缓存。假如你有更多的数据要发送，因此想要增加
+  缓存的大小，但是如果有其它操作也在等待这个缓存，那么你就不能这样做，因为如此会是当前的
+  缓存失效。你可以创建一个新的缓存，但是却不能删除旧的缓存。而且由于你不知道每次究竟有多大
+  的数据要发送，因此这样会使你的程序变得相当复杂。
+* 如果你在写一个代理程序，那么你很可能会引入双倍的缓存，两个socket总是有各自等待的操作，
+  并且你不可以触碰它们各自的缓存。
+* 如果你的连接管理类被设计成任何时候都可以销毁一个连接对象时（例如：当一个连接在处理一定
+  的数据后报错时），那么你的类的对象在IO完成之前是不能够被销毁的。
+
+IOCP操作也需要一个指向`OVERLAPPED`结构体的指针，并且在IO完成之前，这个`OVERLAPPED`
+结构体的指针一直有效，同时不能被重用。因此，当你需要同时读和写时，那么你的类不能继承自
+`OVERLAPPED`结构体（这是一个常用的模式）。也就是说，你的socket类需要同时保存两个
+`OVERLAPPED`结构体，一个用来`ReadFile`，一个用来`WriteFile`。
+
+反之，epoll没有使用任何缓存，因此epoll不存在上述问题。
+
+等待条件的修改（Waiting Condition Modification）
+=============================================
 
 
