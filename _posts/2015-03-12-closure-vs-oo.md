@@ -10,23 +10,16 @@ comments: true
 share: true
 ---
 
-目录
-====
-
-<!-- MarkdownTOC -->
-
-- 库的接口设计
-
-<!-- /MarkdownTOC -->
-
 最近又有点空，翻出了[《Linux多线程服务端编程：使用muduo C++网络库》](http://www.duokan.com/book/76600)
 随便看看，又看到了一些而之前没有注意过的问题，这要从我之前写Java的时候，一直存在的一个
 疑问开始说起。
 
-问题是这样的：
 在Java多线程中，如果要是实现一个线程，有两种方式：
+
 * 继承自`Thread`类，重载`Thread`类中的`run()`方法
 * 使用一个`Runnable`的对象new一个`Thread`，直接调用start()启动线程
+
+于是，问题来了：
 
     为什么Java要设计这两种方式？在什么场景下会有不同？
 
@@ -57,7 +50,7 @@ public class ThreadA extends Thread {
     private Data data;
     
     public void run() {
-        // data.dosth();
+        // do something with data
     }
 }
 
@@ -74,12 +67,18 @@ threadA.start();
 // usage code
 Data data = new Data();
 Thread threadB = new Thread(new Runnable() {
-
     @Override
     public void run() {
-        data.dosth();
+        // do something with data
     }
 });
 threadB.start();
 
 {% endhighlight %}
+
+小结
+====
+
+在Java中，这两种方式看似稀松平常，但是背后却是两种不同的设计思想：一种是以继承的方式将
+用户的逻辑注入库中；一种是以闭包的形式将用户的逻辑注入库中。在完成相同功能的情况下，后一种
+可以带来更加轻便的设计。如果稍加类比，这些思想也可以带进其他的项目中，或者其他语言中。
